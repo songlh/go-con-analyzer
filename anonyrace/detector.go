@@ -322,7 +322,7 @@ func CheckCallerFunc(callerFunc *ssa.Function) []Results {
 					}
 					resultInfo.CallerReferrer.StoreInsts = storeInsts
 
-					// if LOAD or STORE in AnonFunc, and both LOAD and STORE(after GO) in AnonFunc
+					// if LOAD or STORE in AnonFunc, and both LOAD and STORE(after GO) in CallerFunc
 					if len(resultInfo.AnonReferrer.StoreInsts) + len(resultInfo.AnonReferrer.LoadInsts) > 0 &&
 						len(resultInfo.CallerReferrer.StoreInsts) * len(resultInfo.CallerReferrer.LoadInsts) > 0 {
 						result[freeVar] = resultInfo
