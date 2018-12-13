@@ -1,64 +1,68 @@
-package main 
+package main
 
 import (
-	"log"
+	"encoding/json"
 	"fmt"
-
-	//"golang.org/x/tools/go/ssa"
-
-	"github.com/songlh/GCatch/ssabuilder"
 	"github.com/songlh/GCatch/anonyrace"
+	"github.com/songlh/GCatch/ssabuilder"
+	"golang.org/x/tools/go/ssa"
+	"io/ioutil"
+	"log"
+	"os"
+	"strings"
 )
 
-
-
-func main() {
-	//fmt.Println("Hello world")
-	files := []string{"tests/anonyrace1/anonyrace1.go"}
-
-	fmt.Println(files)
-
-	conf, err := ssabuilder.NewConfig(files)
+func handlePkgFiles(pkgPathAndName string, filePaths []string) {
+	conf, err := ssabuilder.NewConfig(filePaths)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	ssainfo, err := conf.Build()
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
+		return
 	}
 
-	//fmt.Println(reflect.TypeOf(ssainfo.Prog))
+	var myPkg *ssa.Package
 
-	//for _, pkg := range ssainfo.Prog.AllPackages() {
-	//	fmt.Println(pkg.Pkg.Name())	
-	//}
+	fields := strings.Split(pkgPathAndName, ":")
+	pkgName := fields[1]
+	for _, pkg := range ssainfo.Prog.AllPackages() {
+		if pkg.Pkg.Name() == pkgName {
+			myPkg = pkg
+		}
+	}
 
-	mainPkg := ssabuilder.GetMainPkg(ssainfo.Prog)
-
-	if mainPkg == nil {
+	if myPkg == nil {
 		fmt.Println("Fail to find main package")
+		return
 	}
 
-	//for _, m := range mainPkg.Members {
-	//	fmt.Println(reflect.TypeOf(m))
-	//}
+	fmt.Println("###start checking...")
 
-	//fmain := mainPkg.Func("main")
+	// Switch from check and print all
+	// TODO: too lazy to write a control option
+	anonyrace.Check(myPkg)
+	// anonyrace.PrintAll(myPkg)
+}
 
-	anonyrace.Check(mainPkg)
+func main() {
+	jsonFile, err := os.Open("scripts/data.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer jsonFile.Close()
 
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	var pkgFiles map[string][]string
+	json.Unmarshal([]byte(byteValue), &pkgFiles)
 
-	//anonyList := fmain.AnonFuncs
-
-
-	//ssabuilder.PrintCFG(fmain)
-
-
-	//fmt.Println(len(anonyList))
-	//printCFG(anonyList[0])
-
-	//printCFG(fmain)
-	//printBasicBlock(fmain.Blocks[0])
-
+	for pkgName, filePaths := range pkgFiles {
+		fmt.Println("###pkgName:", pkgName)
+		fmt.Println("###filePaths:", filePaths)
+		handlePkgFiles(pkgName, filePaths)
+	}
+	//pkgName := "grpc"
+	//handlePkgFiles(pkgName, pkgFiles[pkgName])
 }

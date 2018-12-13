@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 func test() {
 	sum := 0
 
@@ -11,19 +9,27 @@ func test() {
 		}()
 	}
 
-	fmt.Println(sum)
+	//fmt.Println(sum)
+	g(sum)
 }
 
-
+func g(i int) int {
+	i++
+	return i
+}
 
 func main() {
 
 	done := make(chan bool)
 
 	for i := 0; i < 10; i ++ {
+//		k := 0
 		go func() {
 			j := i
-			fmt.Println(j)
+//			j := k
+			//fmt.Print(j)
+			j += 1
+			g(j)
 			done <- true
 		}()
 	}

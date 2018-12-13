@@ -3,15 +3,17 @@ package ssabuilder
 import (
 	"fmt"
 	"go/build"
-	"go/token"
-	"io"
-	"io/ioutil"
-	"log"
-
 	"golang.org/x/tools/go/loader"
+
+	"go/parser"
+	"go/token"
+	//"golang.org/x/tools/go/loader"
 	"golang.org/x/tools/go/pointer"
 	"golang.org/x/tools/go/ssa"
 	"golang.org/x/tools/go/ssa/ssautil"
+	"io"
+	"io/ioutil"
+	"log"
 )
 
 
@@ -36,7 +38,7 @@ type SSAInfo struct {
 var (
 	// Packages that should not be loaded (and reasons) by default
 	badPkgs = map[string]string{
-		"fmt":     "Recursive calls unrelated to communication",
+		"fmt":     "Recursiv calls unrelated to communication",
 		"reflect": "Reflection not supported for static analyser",
 		"runtime": "Runtime contains threads that are not user related",
 		"strings": "Strings function does not have communication",
@@ -62,8 +64,26 @@ func NewConfig(files []string) (*Config, error) {
 }
 
 func (conf * Config) Build() (*SSAInfo, error) {
+
+	// TODO: I have tried to test all the build config here, but not work or work but no difference
+
 	//it is possible to set this one as ad hoc package
-	var lconf = loader.Config{Build: &build.Default}
+	//var lconf = loader.Config{Build: &build.Default}
+
+	// Change build and parser mode
+	myBuild := build.Default
+	//myBuild.CgoEnabled = true
+	//myBuild.UseAllFiles = false
+	//fmt.Println(build.Default)
+	//fmt.Println(myBuild)
+
+	var lconf = loader.Config{ParserMode: parser.AllErrors, Build: &myBuild}
+	//var lconf = loader.Config{ParserMode: parser.DeclarationErrors, Build: &myBuild}
+	//var lconf = loader.Config{ParserMode: parser.ImportsOnly, Build: &myBuild}
+	//var lconf = loader.Config{ParserMode: parser.PackageClauseOnly, Build: &myBuild}
+	//fmt.Println("###lconf.ParserMode: ", lconf.ParserMode)
+	// End of change
+
 	buildLog := log.New(conf.BuildLog, "ssabuild: ", conf.LogFlags)
 
 	args, err := lconf.FromArgs(conf.Files, false)
@@ -82,7 +102,8 @@ func (conf * Config) Build() (*SSAInfo, error) {
 		return nil, err
 	}
 
-	prog := ssautil.CreateProgram(lprog, ssa.GlobalDebug|ssa.BareInits)
+	//prog := ssautil.CreateProgram(lprog, ssa.GlobalDebug|ssa.BareInits)
+	prog := ssautil.CreateProgram(lprog, ssa.GlobalDebug|ssa.NaiveForm|ssa.BuildSerially)
 
 	ptaConf, err := setupPTA(prog, lprog, conf.PtaLog)
 
@@ -96,6 +117,7 @@ func (conf * Config) Build() (*SSAInfo, error) {
 				buildLog.Printf("Skip package: %s (%s)", info.Pkg.Name(), reason)
 				ignoredPkgs = append(ignoredPkgs, info.Pkg.Name() )
 			} else {
+				//prog.Package(info.Pkg).SetDebugMode(true)
 				prog.Package(info.Pkg).Build()
 			}
 		}
