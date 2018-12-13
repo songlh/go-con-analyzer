@@ -35,6 +35,6 @@ CallerVar: new int (i)
 	CallerReferrer: Load: [*t2 *t2]	Store: [*t2 = t5]
 ```
 
-Note: the scenario of ```main.test``` cannot **NOT** be checked because NO STORE after Go instruction in CallerFunc!
+Note: the scenario of ```main.test``` can **NOT** be checked because NO STORE after Go instruction in CallerFunc!
 
 Tested on Ubuntu 16.04, go version go1.9.1 linux/amd64
